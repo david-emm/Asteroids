@@ -25,7 +25,6 @@ Initially you have 4 lives - remaining lives are shown as mini space ships.
 Press the 'B' key to start the game.
 """
 
-# These are the import statements
 import os
 from os import path
 import random
