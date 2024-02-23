@@ -25,8 +25,6 @@ Initially you have 4 lives - remaining lives are shown as mini space ships.
 Press the 'B' key to start the game.
 """
 
-# pylint: disable=no-member
-
 # These are the import statements
 import os
 from os import path
