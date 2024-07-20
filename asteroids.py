@@ -7,7 +7,7 @@ set up to use all of the available display screen, up to 1920 x 1080.
 If you want to make it bigger for a more modern monitor you will need to
 find larger background pictures (stars.png and debris.png).
 If you want a frame with a title around the playing area remove
-", pg.FULLSCREEN" in line 303. Requires the following imports:
+", pg.FULLSCREEN" in line 302. Requires the following imports:
 pygame, os, random.
 
 Controls.
