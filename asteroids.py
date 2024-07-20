@@ -1,28 +1,30 @@
-#!/usr/bin/env python3
-
 """
-My Spacer program. Author david-emm. Last mod: 30/08/22.
+My Spacer program. Author david-emm. Last mod: 18/07/2024.
 Written to play on a Linux system. but should be OK on Windows.
 
-A Space ship based game built as an exercise using pygame and set up to use
-all of the available display screen, up to 1920 x 1080. If you want a frame
-with a title remove pg.FULLSCREEN in line 272/3. Requires the following imports
-to be installed: pygame, os, random.
+A Space ship based game built as an exercise using pygame and
+set up to use all of the available display screen, up to 1920 x 1080.
+If you want to make it bigger for a more modern monitor you will need to
+find larger background pictures (stars.png and debris.png).
+If you want a frame with a title around the playing area remove
+", pg.FULLSCREEN" in line 303. Requires the following imports:
+pygame, os, random.
 
 Controls.
-LEFT arrow and RIGHT arrow, when pressed, turn the space ship on it's centre.
-UP arrow, when pressed, turns on thrust in the forward direction only. Note
-thrust stops when UP arrow is released. The ship also stops which is not what
-really happens in space!
+LEFT arrow and RIGHT arrow, when pressed, turn the space ship
+on it's centre. UP arrow, when pressed, turns on thrust in the
+forward direction only. Note thrust stops when UP arrow is released.
+The ship also stops which is not what really happens in space!
 
 The space bar, when pressed, fires a laser missile.
 
-The number of laser missiles is shown in the Laser bar and is initially
-200 missiles. Hitting the gold asteroid reloads missiles.
+The number of laser missiles is shown in the Laser bar and is
+initially 200 missiles. Hitting the gold asteroid reloads missiles.
 
-Initially you have 4 lives - remaining lives are shown as mini space ships.
+Initially you have 4 lives. You lose a life every time the space ship
+is hit. The remaining lives are shown as mini space ships.
 
-Press the 'B' key to start the game.
+Press the 'ENTER' or 'RETURN' key to start the game.
 """
 
 import os
@@ -33,7 +35,7 @@ import pygame as pg
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 vec = pg.math.Vector2
 
-"""These are the initial constants"""
+# These are the initial constants
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
@@ -50,14 +52,19 @@ AST_RANGE = 7
 POWERUP_PCT = 3
 HS_FILE = "highscore.txt"
 
-"""Now set layers - instructs pygame which layer to put on top"""
+# Now set layers - instructs pygame which layer to put on top
 EXPLOSION_LAYER = 3
 SHIP_LAYER = 2
 BULLET_LAYER = 1
 ROCK_LAYER = 1
 
+
 class Ship(pg.sprite.Sprite):
-    """Load Ship class."""
+    """
+    This is the 'shooter' depicted on the screen as a space ship.
+    There is only one shooter and it needs functions to capture the
+    players intentions - when to turn, move and fire missiles etc.
+    """
 
     def __init__(self, game, x, y, dt):
         x = int(x)
@@ -87,7 +94,7 @@ class Ship(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.pos += self.vel * self.dt
         self.rect.center = int(self.pos.x), int(self.pos.y)
-        """Wrap ship round screen."""
+        # Wrap ship moves round screen
         self.rect.centerx %= self.game.WIDTH
         self.rect.centery %= self.game.HEIGHT
 
@@ -119,8 +126,14 @@ class Ship(pg.sprite.Sprite):
             if self.energy <= 0:
                 self.game.playing = False
 
+
 class Bullet(pg.sprite.Sprite):
-    """Load Bullet class."""
+    """
+    Bullets are the missiles fired by the shooter when the
+    space key is pressed. They are fired from the front of
+    the space ship in the direction that it is pointing. They
+    die if they leave the sreen.
+    """
 
     def __init__(self, game, pos, direction, rot, dt):
         self.groups = game.all_sprites, game.bullets
@@ -139,14 +152,21 @@ class Bullet(pg.sprite.Sprite):
     def update(self):
         self.pos += self.vel * self.dt
         self.rect.center = int(self.pos.x), int(self.pos.y)
-        """kill it if it moves off the screen"""
+        # kill it if it moves off the screen
         if (self.rect.centerx > self.game.WIDTH or self.rect.centerx < 0
                 or self.rect.centery > self.game.HEIGHT
                 or self.rect.centery < 0):
             self.kill()
 
+
 class Rocks(pg.sprite.Sprite):
-    """Load Rocks class."""
+    """
+    Rocks are the targets that the player is trying to destroy.
+    They are randomly generated and launched. If a missile his them
+    they are destroyed. If they hit the space ship it is damaged.
+    Too much damage kills it. The game allows four lives shown on
+    the screen as tiny space ships.
+    """
 
     def __init__(self, game, dt):
         self.groups = game.all_sprites, game.rocks
@@ -178,12 +198,17 @@ class Rocks(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.pos += self.vel * self.dt
         self.rect.center = int(self.pos.x), int(self.pos.y)
-        """Wrap rocks round screen"""
+        # Wrap rocks round screen
         self.rect.x %= self.game.WIDTH
         self.rect.y %= self.game.HEIGHT
 
+
 class Ball(pg.sprite.Sprite):
-    """Load Ball class."""
+    """
+    A random generated coloured rock that when hit by a missile
+    restores the missile count to max. It is only generated when
+    the missile count reached a predetermined low figure.
+    """
 
     def __init__(self, game, dt):
         self.groups = game.all_sprites, game.ball
@@ -218,8 +243,12 @@ class Ball(pg.sprite.Sprite):
                 or self.rect.centery < 0):
             self.kill()
 
+
 class Explosion(pg.sprite.Sprite):
-    """Load Explosion class."""
+    """
+    Pretty animated explosion routine to indicate that a rock or
+    the space ship has been hit.
+    """
 
     def __init__(self, game, center, size):
         self.groups = game.all_sprites, game.explosions
@@ -247,13 +276,16 @@ class Explosion(pg.sprite.Sprite):
                 self.rect = self.image.get_rect()
                 self.rect.center = center
 
-class Game:
-    """Load Game class."""
 
-    def __init__(self):
-        """Get screen size and intilise sound settings and pygame.
-           Initialise start variables.
-        """
+class Game:
+    """
+    The main loop. Initialises the game, loads images and sound files
+    and starts the event, update, draw loop. Spawns rocks as appropriate
+    and detects missile firing and rock and ship hits. Spawns the reload
+    ball when appropriate. Displays start and end screens when required.
+    """
+
+    def __init__(self):  # Size screen, intilise sound settings and pygame
         pg.mixer.pre_init(44100, -16, 8, 1024)
         pg.init()
         pg.mouse.set_visible(False)
@@ -272,8 +304,7 @@ class Game:
         self.playing = None
         self.load_images()
 
-    def load_images(self):
-        """Load all game graphics."""
+    def load_images(self):  # Load all game graphics
         folder = path.join(path.dirname(__file__), 'img')
         try:
             self.dir = path.dirname(__file__)
@@ -288,7 +319,7 @@ class Game:
             self.debris = pg.image.load(os.path.join(
                 folder, 'debris.png')).convert_alpha()
             self.one_ship = pg.image.load(os.path.join(
-                folder, 'one_ship.png')).convert()#
+                folder, 'one_ship.png')).convert()
             self.one_ship.set_colorkey(BLACK)  # black is transparent
             self.two_ship = pg.image.load(os.path.join(
                 folder, 'two_ship.png')).convert()
@@ -337,8 +368,7 @@ class Game:
             print("OS error: {0}".format(err))
         self.load_sounds()
 
-    def load_sounds(self):
-        """Load all sound files."""
+    def load_sounds(self):  # Load all sound files
         self.snd_dir = path.join(self.dir, 'snd')
         self.fire_sound = pg.mixer.Sound(path.join(self.snd_dir, 'laser.ogg'))
         self.fire_sound.set_volume(0.25)
@@ -346,15 +376,14 @@ class Game:
             path.join(self.snd_dir, 'rumble.ogg'))
         self.explosion_sound.set_volume(0.25)
 
-    def new(self):
-        """Initialise all groups."""
+    def new(self):  # Initialise all groups
         self.all_sprites = pg.sprite.LayeredUpdates()
         self.bullets = pg.sprite.Group()
         self.rocks = pg.sprite.Group()
         self.explosions = pg.sprite.Group()
         self.ball = pg.sprite.Group()
 
-        """These are the initial game variables and game controls."""
+        # These are the initial game variables and game controls
         self.my_lives = 3
         self.my_score = 0
         self.energy = 100
@@ -373,8 +402,7 @@ class Game:
             self.update()
             self.draw()
 
-    def events(self):
-        """Check for end event."""
+    def events(self):  # First checks for end event
         for event in pg.event.get():
             if (event.type == pg.QUIT or event.type == pg.KEYDOWN
                     and event.key == pg.K_ESCAPE):
@@ -382,8 +410,7 @@ class Game:
                     self.playing = False
                 self.running = False
 
-    def update(self):
-        """Update main game loop."""
+    def update(self):  # Updates main game loop
         self.screentime += 1
         self.wtime = int(self.screentime / 20 % self.WIDTH)
         self.ship.get_keys()
@@ -393,7 +420,7 @@ class Game:
         self.explosions.update()
         self.ball.update()
 
-        """Spawn rocks."""
+        # Spawns rocks
         now = pg.time.get_ticks()
         if len(self.rocks.sprites()) < AST_RANGE:
             if now - self.rock_timer > 500 + random.choice(
@@ -401,7 +428,7 @@ class Game:
                 self.rock_timer = now
                 Rocks(gm, self.dt)
 
-        """Check to see if a rock hits the ship."""
+        # Checks to see if a rock hits the ship
         rock_hits = pg.sprite.spritecollide(
             self.ship, self.rocks, True, pg.sprite.collide_rect_ratio(0.5))
         if rock_hits:
@@ -413,7 +440,7 @@ class Game:
                 # Explosion(gm, self.ship.rect.center, 2)
                 self.playing = False
 
-        """Check to see if a bullet hit a rock."""
+        # Checks to see if a bullet hit a rock
         bullet_hits = pg.sprite.groupcollide(
             self.rocks, self.bullets, True, True,
             pg.sprite.collide_circle_ratio(0.5))
@@ -422,12 +449,12 @@ class Game:
             self.explosion_sound.play()
             self.my_score += 10
 
-        """Spawn energy ball."""
+        # Spawns energy ball
         if not self.ball and self.ship.energy < 50 and random.randrange(
                 100) < POWERUP_PCT:
             Ball(gm, self.dt)
 
-        """Check to see if a bullet hit an energy ball."""
+        # Checks to see if a bullet hit an energy ball
         ball_hits = pg.sprite.groupcollide(
             self.ball, self.bullets, True, True,
             pg.sprite.collide_circle_ratio(0.5))
@@ -436,8 +463,7 @@ class Game:
             self.explosion_sound.play()
             self.ship.energy = 100
 
-    def draw(self):
-        """Draw game screen."""
+    def draw(self):  # Draws game screen
         self.screen.blit(self.stars, (0, 0))
         self.screen.blit(self.debris, ((self.wtime - self.WIDTH), 0))
         self.screen.blit(self.debris, (self.wtime, 0))
@@ -450,8 +476,7 @@ class Game:
         self.all_sprites.draw(self.screen)
         pg.display.flip()
 
-    def show_start_screen(self):
-        """Game splash/start screen."""
+    def show_start_screen(self):  # Game splash/start screen
         pg.mixer.music.load(path.join(self.snd_dir, 'start.ogg'))
         pg.mixer.music.play(loops=-1)
         pg.mixer.music.set_volume(0.3)
@@ -468,7 +493,7 @@ class Game:
             "Space bar fires missile.",
             22, WHITE, self.WIDTH // 2, self.HEIGHT // 2 + 90)
         self.draw_text(
-            "Press the 'B' key to play",
+            "Press the 'ENTER' key to play",
             22, WHITE, self.WIDTH // 2, self.HEIGHT * 3 // 4)
         self.draw_text(
             "Or press the 'Esc' key to end",
@@ -480,8 +505,7 @@ class Game:
         self.wait_for_key()
         pg.mixer.music.fadeout(500)
 
-    def show_end_screen(self):
-        """Draw game over/continue screen."""
+    def show_end_screen(self):  # Game over/continue screen
         if not self.running:
             return
         pg.mixer.music.load(path.join(self.snd_dir, 'start.ogg'))
@@ -496,7 +520,7 @@ class Game:
             "Score: " + str(self.my_score), 22, WHITE,
             self.WIDTH // 2, self.HEIGHT // 2)
         self.draw_text(
-            "Press the 'B' key to play again", 22, WHITE,
+            "Press the 'ENTER' key to play again", 22, WHITE,
             self.WIDTH / 2, self.HEIGHT * 3 // 4)
         self.draw_text(
             "Or press the 'Esc' key to end", 22, WHITE,
@@ -516,8 +540,7 @@ class Game:
         self.wait_for_key()
         pg.mixer.music.fadeout(500)
 
-    def wait_for_key(self):
-        """Waiting for key press to clear start and end game screens."""
+    def wait_for_key(self):  # Clears start and end game screens
         waiting = True
         while waiting:
             self.clock.tick(FPS)
@@ -527,11 +550,10 @@ class Game:
                     waiting = False
                     self.running = False
                 if (event.type == pg.KEYDOWN
-                        and event.key == pg.K_b):
+                        and event.key == pg.K_RETURN):
                     waiting = False
 
-    def draw_text(self, text, size, color, x, y):
-        """Now add text to display."""
+    def draw_text(self, text, size, color, x, y):  # Adds text to display
         x = int(x)
         y = int(y)
         size = int(size)
@@ -541,16 +563,14 @@ class Game:
         text_rect.midtop = (x, y)
         self.screen.blit(text_surface, text_rect)
 
-    def draw_lives(self, surf, x, y, lives, pic):
-        """Now add little ship images for lives display."""
+    def draw_lives(self, surf, x, y, lives, pic):  # Adds little ship images
         for life in range(lives):
             img_rect = pic.get_rect()
             img_rect.x = x + 50 * life
             img_rect.y = y
             surf.blit(pic, img_rect)
 
-    def draw_energy_bar(self, surf, x, y, pct):
-        """Now add energy bar."""
+    def draw_energy_bar(self, surf, x, y, pct):  # Adds energy bar
         if pct < 0:
             pct = 0
         bar_length = 200
@@ -568,12 +588,13 @@ class Game:
             pg.draw.rect(surf, RED, fill_rect)
             pg.draw.rect(surf, WHITE, outline_rect, 1)
 
-#Create the game object and start.
+
+# Create the game object and start
 gm = Game()
 gm.show_start_screen()
 while gm.running:
     gm.new()
     gm.show_end_screen()
 
-#End of game.
+# End game
 pg.quit()
